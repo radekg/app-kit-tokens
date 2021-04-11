@@ -1,0 +1,1154 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>jwks: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/radekg/app-kit-tokens/jwks/jwks.go (75.0%)</option>
+				
+				<option value="file1">github.com/radekg/app-kit-tokens/tokens/accesstoken.go (47.6%)</option>
+				
+				<option value="file2">github.com/radekg/app-kit-tokens/tokens/idtoken.go (0.0%)</option>
+				
+				<option value="file3">github.com/radekg/app-kit-tokens/tokens/jwt.go (100.0%)</option>
+				
+				<option value="file4">github.com/radekg/app-kit-tokens/tokens/refreshtoken.go (0.0%)</option>
+				
+				<option value="file5">github.com/radekg/app-kit-tokens/tokens/shared.go (22.5%)</option>
+				
+				<option value="file6">github.com/radekg/app-kit-tokens/webfinger/openid.go (0.0%)</option>
+				
+				<option value="file7">github.com/radekg/app-kit-tokens/webfinger/support.go (0.0%)</option>
+				
+				<option value="file8">github.com/radekg/app-kit-tokens/webfinger/uma2.go (0.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">no coverage</span>
+				<span class="cov1">low coverage</span>
+				<span class="cov2">*</span>
+				<span class="cov3">*</span>
+				<span class="cov4">*</span>
+				<span class="cov5">*</span>
+				<span class="cov6">*</span>
+				<span class="cov7">*</span>
+				<span class="cov8">*</span>
+				<span class="cov9">*</span>
+				<span class="cov10">high coverage</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package jwks
+
+import (
+        "encoding/json"
+        "errors"
+        "net/http"
+        "net/url"
+
+        "github.com/radekg/app-kit-tokens/tokens"
+        "gopkg.in/square/go-jose.v2"
+        "gopkg.in/square/go-jose.v2/jwt"
+)
+
+var (
+        // ErrSigningKeyNotKnown indicates a token where for which there is no signing key in this JWKS.
+        ErrSigningKeyNotKnown = errSigningKeyNotKnown()
+)
+
+func errSigningKeyNotKnown() error <span class="cov4" title="2">{ return errors.New("kid not in jwks") }</span>
+
+// ResolveJWKS loads JWKS configuration from the given URL.
+func ResolveJWKS(location *url.URL, client *http.Client) (JWKS, error) <span class="cov1" title="1">{
+        if client == nil </span><span class="cov1" title="1">{
+                client = &amp;http.Client{}
+        }</span>
+        // construct the request:
+        <span class="cov1" title="1">request, requestError := http.NewRequest("GET", location.String(), nil)
+        if requestError != nil </span><span class="cov0" title="0">{
+                return nil, requestError
+        }</span>
+        // issue the request:
+        <span class="cov1" title="1">resp, getErr := client.Do(request)
+        if getErr != nil </span><span class="cov0" title="0">{
+                return nil, getErr
+        }</span>
+        <span class="cov1" title="1">defer resp.Body.Close()
+
+        jwks := &amp;jose.JSONWebKeySet{}
+        // unmarshal JSON into the struct:
+        if jsonErr := json.NewDecoder(resp.Body).Decode(jwks); jsonErr != nil </span><span class="cov0" title="0">{
+                return nil, jsonErr
+        }</span>
+        <span class="cov1" title="1">return &amp;defaultJWKS{set: jwks}, nil</span>
+
+}
+
+// JWKS abstracts token validation using JWKS resolved with FetchJWKS.
+type JWKS interface {
+        Key(kid string) []jose.JSONWebKey
+        ReadSigned(rawToken string) JWTRead
+}
+
+type defaultJWKS struct {
+        set *jose.JSONWebKeySet
+}
+
+func (v *defaultJWKS) Key(kid string) []jose.JSONWebKey <span class="cov0" title="0">{
+        return v.set.Key(kid)
+}</span>
+
+func (v *defaultJWKS) ReadSigned(rawToken string) JWTRead <span class="cov7" title="4">{
+        cl := tokens.Claims{}
+        token, err := jwt.ParseSigned(rawToken)
+        if err != nil </span><span class="cov0" title="0">{
+                return &amp;defaultJWTRead{
+                        err: err,
+                }
+        }</span>
+        // do we have a JWK with the ID from the header
+        <span class="cov7" title="4">if token.Headers[0].KeyID != "" </span><span class="cov6" title="3">{
+                for _, k := range v.set.Keys </span><span class="cov10" title="6">{
+                        if k.KeyID == token.Headers[0].KeyID </span><span class="cov4" title="2">{
+                                claimsErr := token.Claims(k.Public(), &amp;cl)
+                                return &amp;defaultJWTRead{
+                                        err:     claimsErr,
+                                        headers: token.Headers,
+                                        claims:  cl,
+                                }
+                        }</span>
+                }
+                <span class="cov1" title="1">return &amp;defaultJWTRead{
+                        err: ErrSigningKeyNotKnown,
+                }</span>
+        }
+
+        // else, it's possible we have no key id, we need to try every key and return
+        // on first non nil error or fail with ErrSigningKeyNotKnown
+
+        <span class="cov1" title="1">for _, k := range v.set.Keys </span><span class="cov4" title="2">{
+                if err := token.Claims(k.Public(), &amp;cl); err == nil </span><span class="cov0" title="0">{
+                        return &amp;defaultJWTRead{
+                                err:     nil,
+                                claims:  cl,
+                                headers: token.Headers,
+                        }
+                }</span>
+        }
+
+        <span class="cov1" title="1">return &amp;defaultJWTRead{
+                err: ErrSigningKeyNotKnown,
+        }</span>
+}
+
+// JWTRead abstracts the jwt token read result.
+type JWTRead interface {
+        Error() error
+        Headers() []jose.Header
+        Claims() tokens.Claims
+}
+
+type defaultJWTRead struct {
+        err     error
+        headers []jose.Header
+        claims  tokens.Claims
+}
+
+func (rr *defaultJWTRead) Error() error <span class="cov7" title="4">{
+        return rr.err
+}</span>
+func (rr *defaultJWTRead) Headers() []jose.Header <span class="cov0" title="0">{
+        return rr.headers
+}</span>
+
+func (rr *defaultJWTRead) Claims() tokens.Claims <span class="cov0" title="0">{
+        return rr.claims
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package tokens
+
+import (
+        "testing"
+
+        "gopkg.in/square/go-jose.v2/jwt"
+)
+
+// AccessToken represents an access token.
+type AccessToken interface {
+        // Default access token properties
+        ClientID() (string, bool)
+        Exp() (int64, bool)
+        Iat() (int64, bool)
+        Iss() (string, bool)
+        Jti() (string, bool)
+        Scope() (string, bool)
+        Sub() (string, bool)
+        // Common convenience properties:
+        Aud() (interface{}, bool)
+        Nbf() (int64, bool)
+        Typ() (string, bool)
+        // Other convenience methods:
+        RawClaims() Claims
+}
+
+type defaultAccessToken struct {
+        defaultToken
+        claims Claims
+}
+
+func (at *defaultAccessToken) Aud() (interface{}, bool) <span class="cov0" title="0">{
+        return at.claims.GetClaim("aud")
+}</span>
+func (at *defaultAccessToken) ClientID() (string, bool) <span class="cov0" title="0">{
+        return at.claims.GetClaimMustString("client_id")
+}</span>
+func (at *defaultAccessToken) Exp() (int64, bool) <span class="cov6" title="2">{
+        return at.claims.getInt64Claim("exp")
+}</span>
+func (at *defaultAccessToken) Iat() (int64, bool) <span class="cov0" title="0">{
+        return at.claims.getInt64Claim("iat")
+}</span>
+func (at *defaultAccessToken) Iss() (string, bool) <span class="cov0" title="0">{
+        return at.claims.GetClaimMustString("iss")
+}</span>
+func (at *defaultAccessToken) Jti() (string, bool) <span class="cov0" title="0">{
+        return at.claims.GetClaimMustString("jti")
+}</span>
+func (at *defaultAccessToken) Nbf() (int64, bool) <span class="cov0" title="0">{
+        return at.claims.getInt64Claim("nbf")
+}</span>
+func (at *defaultAccessToken) Scope() (string, bool) <span class="cov6" title="2">{
+        // ORY Hydra returns this claim as scp.
+        // Keycloak returns this as scope (as specified in the spec).
+        for _, claimName := range []string{"scp", "scope"} </span><span class="cov10" title="3">{
+                if at.claims.HasClaim(claimName) </span><span class="cov6" title="2">{
+                        return at.claims.GetClaimMustString(claimName)
+                }</span>
+        }
+        <span class="cov0" title="0">return "", false</span>
+}
+func (at *defaultAccessToken) Sub() (string, bool) <span class="cov0" title="0">{
+        return at.claims.GetClaimMustString("sub")
+}</span>
+func (at *defaultAccessToken) Typ() (string, bool) <span class="cov0" title="0">{
+        return at.claims.GetClaimMustString("typ")
+}</span>
+
+// convenience:
+
+// DefaultAccessToken returns an instacne of the access token.
+// Call this function using claims returned from jwks.Validator.ValidateToken(string).
+func DefaultAccessToken(claims Claims) AccessToken <span class="cov6" title="2">{
+        return &amp;defaultAccessToken{claims: claims}
+}</span>
+
+func defaultInsecureAccessToken(t *testing.T, rawToken string) (AccessToken, error) <span class="cov6" title="2">{
+        token, parseErr := jwt.ParseSigned(rawToken)
+        if parseErr != nil </span><span class="cov0" title="0">{
+                return nil, parseErr
+        }</span>
+        <span class="cov6" title="2">cl := map[string]interface{}{}
+        if claimsErr := token.UnsafeClaimsWithoutVerification(&amp;cl); claimsErr != nil </span><span class="cov0" title="0">{
+                return nil, claimsErr
+        }</span>
+        <span class="cov6" title="2">return DefaultAccessToken(cl), nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package tokens
+
+import (
+        "fmt"
+        "testing"
+
+        "gopkg.in/square/go-jose.v2/jwt"
+)
+
+// IDToken represents the ID token.
+type IDToken interface {
+
+        // https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
+        Birthdate() (string, bool)
+        Email() (string, bool)
+        EmailVerified() (bool, bool)
+        FamilyName() (string, bool)
+        Gender() (string, bool)
+        MiddleName() (string, bool)
+        Name() (string, bool)
+        Nickname() (string, bool)
+        PhoneNumber() (string, bool)
+        PhoneNumberVerified() (bool, bool)
+        Picture() (string, bool)
+        PreferredUsername() (string, bool)
+        Profile() (string, bool)
+        Sub() (string, bool)
+        UpdatedAt() (int64, bool)
+        Website() (string, bool)
+        ZoneInfo() (string, bool)
+
+        // Other convenient documented claims:
+        // https://openid.net/specs/openid-connect-core-1_0.html#AddressClaim
+        Address() (interface{}, bool)
+        // https://openid.net/specs/openid-connect-core-1_0.html#CodeIDToken
+        AtHash() (string, bool)
+        // https://openid.net/specs/openid-connect-core-1_0.html#HybridIDToken
+        CHash() (string, bool)
+        // https://openid.net/specs/openid-connect-core-1_0.html#SelfIssuedValidation
+        SubJWK() (interface{}, bool)
+}
+
+type defaultIDToken struct {
+        defaultToken
+        claims Claims
+}
+
+// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
+func (it *defaultIDToken) Birthdate() (string, bool) <span class="cov0" title="0">{
+        return it.GetClaimMustString("birthdate")
+}</span>
+func (it *defaultIDToken) Email() (string, bool) <span class="cov0" title="0">{
+        return it.GetClaimMustString("email")
+}</span>
+func (it *defaultIDToken) EmailVerified() (bool, bool) <span class="cov0" title="0">{
+        return it.claims.getBoolClaim("email_verified")
+}</span>
+func (it *defaultIDToken) FamilyName() (string, bool) <span class="cov0" title="0">{
+        return it.GetClaimMustString("family_name")
+}</span>
+func (it *defaultIDToken) Gender() (string, bool) <span class="cov0" title="0">{
+        return it.GetClaimMustString("gender")
+}</span>
+func (it *defaultIDToken) MiddleName() (string, bool) <span class="cov0" title="0">{
+        return it.GetClaimMustString("middle_name")
+}</span>
+func (it *defaultIDToken) Name() (string, bool) <span class="cov0" title="0">{
+        return it.GetClaimMustString("name")
+}</span>
+func (it *defaultIDToken) Nickname() (string, bool) <span class="cov0" title="0">{
+        return it.GetClaimMustString("nickname")
+}</span>
+func (it *defaultIDToken) PhoneNumber() (string, bool) <span class="cov0" title="0">{
+        return it.GetClaimMustString("phone_number")
+}</span>
+func (it *defaultIDToken) PhoneNumberVerified() (bool, bool) <span class="cov0" title="0">{
+        return it.claims.getBoolClaim("phone_number_verified")
+}</span>
+func (it *defaultIDToken) Picture() (string, bool) <span class="cov0" title="0">{
+        return it.GetClaimMustString("picture")
+}</span>
+func (it *defaultIDToken) PreferredUsername() (string, bool) <span class="cov0" title="0">{
+        return it.GetClaimMustString("preferred_username")
+}</span>
+func (it *defaultIDToken) Profile() (string, bool) <span class="cov0" title="0">{
+        return it.GetClaimMustString("profile")
+}</span>
+func (it *defaultIDToken) Sub() (string, bool) <span class="cov0" title="0">{
+        return it.GetClaimMustString("sub")
+}</span>
+func (it *defaultIDToken) UpdatedAt() (int64, bool) <span class="cov0" title="0">{
+        return it.claims.getInt64Claim("updated_at")
+}</span>
+func (it *defaultIDToken) Website() (string, bool) <span class="cov0" title="0">{
+        return it.GetClaimMustString("website")
+}</span>
+func (it *defaultIDToken) ZoneInfo() (string, bool) <span class="cov0" title="0">{
+        return it.GetClaimMustString("zoneinfo")
+}</span>
+
+// Other convenient documented claims:
+
+func (it *defaultIDToken) Address() (interface{}, bool) <span class="cov0" title="0">{
+        return it.GetClaim("address")
+}</span>
+func (it *defaultIDToken) AtHash() (string, bool) <span class="cov0" title="0">{
+        return it.GetClaimMustString("at_hash")
+}</span>
+func (it *defaultIDToken) CHash() (string, bool) <span class="cov0" title="0">{
+        return it.GetClaimMustString("c_hash")
+}</span>
+func (it *defaultIDToken) SubJWK() (interface{}, bool) <span class="cov0" title="0">{
+        return it.GetClaim("sub_jwk")
+}</span>
+
+// convenience:
+
+func (it *defaultIDToken) HasClaim(claim string) bool <span class="cov0" title="0">{
+        _, ok := it.claims[claim]
+        return ok
+}</span>
+
+func (it *defaultIDToken) GetClaim(claim string) (interface{}, bool) <span class="cov0" title="0">{
+        value, ok := it.claims[claim]
+        return value, ok
+}</span>
+
+func (it *defaultIDToken) GetClaimMustString(claim string) (string, bool) <span class="cov0" title="0">{
+        if value, ok := it.claims[claim]; ok </span><span class="cov0" title="0">{
+                switch tvalue := value.(type) </span>{
+                case string:<span class="cov0" title="0">
+                        return tvalue, ok</span>
+                default:<span class="cov0" title="0">
+                        return fmt.Sprintf("%v", tvalue), ok</span>
+                }
+        }
+        <span class="cov0" title="0">return "", false</span>
+}
+
+func (it *defaultIDToken) RawClaims() Claims <span class="cov0" title="0">{
+        return it.claims
+}</span>
+
+// DefaultIDToken returns an instacne of the ID token.
+// Call this function using claims returned from jwks.Validator.ValidateToken(string).
+func DefaultIDToken(claims Claims) IDToken <span class="cov0" title="0">{
+        return &amp;defaultIDToken{claims: claims}
+}</span>
+
+func defaultInsecureIDToken(t *testing.T, rawToken string) (IDToken, error) <span class="cov0" title="0">{
+        token, parseErr := jwt.ParseSigned(rawToken)
+        if parseErr != nil </span><span class="cov0" title="0">{
+                return nil, parseErr
+        }</span>
+        <span class="cov0" title="0">cl := map[string]interface{}{}
+        if claimsErr := token.UnsafeClaimsWithoutVerification(&amp;cl); claimsErr != nil </span><span class="cov0" title="0">{
+                return nil, claimsErr
+        }</span>
+        <span class="cov0" title="0">return DefaultIDToken(cl), nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package tokens
+
+import (
+        "bytes"
+        "encoding/json"
+)
+
+// JWT is a JWT
+type JWT interface {
+        AccessToken() string
+        IDToken() string
+        ExpiresIn() int64
+        RefreshExpiresIn() int64
+        RefreshToken() string
+        TokenType() string
+        NotBeforePolicy() int64
+        SessionState() string
+        Scope() string
+}
+
+type defaultJWT struct {
+        AccessTokenValue      string `json:"access_token"`
+        IDTokenValue          string `json:"id_token"`
+        ExpiresInValue        int64  `json:"expires_in"`
+        RefreshExpiresInValue int64  `json:"refresh_expires_in"`
+        RefreshTokenValue     string `json:"refresh_token"`
+        TokenTypeValue        string `json:"token_type"`
+        NotBeforePolicyValue  int64  `json:"not-before-policy"`
+        SessionStateValue     string `json:"session_state"`
+        ScopeValue            string `json:"scope"`
+}
+
+func (j *defaultJWT) AccessToken() string <span class="cov8" title="1">{
+        return j.AccessTokenValue
+}</span>
+func (j *defaultJWT) IDToken() string <span class="cov8" title="1">{
+        return j.IDTokenValue
+}</span>
+func (j *defaultJWT) ExpiresIn() int64 <span class="cov8" title="1">{
+        return j.ExpiresInValue
+}</span>
+func (j *defaultJWT) RefreshExpiresIn() int64 <span class="cov8" title="1">{
+        return j.RefreshExpiresInValue
+}</span>
+func (j *defaultJWT) RefreshToken() string <span class="cov8" title="1">{
+        return j.RefreshTokenValue
+}</span>
+func (j *defaultJWT) TokenType() string <span class="cov8" title="1">{
+        return j.TokenTypeValue
+}</span>
+func (j *defaultJWT) NotBeforePolicy() int64 <span class="cov8" title="1">{
+        return j.NotBeforePolicyValue
+}</span>
+func (j *defaultJWT) SessionState() string <span class="cov8" title="1">{
+        return j.SessionStateValue
+}</span>
+func (j *defaultJWT) Scope() string <span class="cov8" title="1">{
+        return j.ScopeValue
+}</span>
+
+// DefaultJWT tries to parse a JWT from bytes using the default implementation.
+func DefaultJWT(rawData []byte) (JWT, error) <span class="cov8" title="1">{
+        jwt := &amp;defaultJWT{}
+        unmarshalErr := json.NewDecoder(bytes.NewReader(rawData)).Decode(jwt)
+        return jwt, unmarshalErr
+}</span>
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package tokens
+
+import (
+        "testing"
+
+        "gopkg.in/square/go-jose.v2/jwt"
+)
+
+// RefreshToken represents a refresh token.
+type RefreshToken interface {
+        // Default refresh token properties
+        Azp() (string, bool)
+        Exp() (int64, bool)
+        Iat() (int64, bool)
+        Iss() (string, bool)
+        Jti() (string, bool)
+        Scope() (string, bool)
+        Sub() (string, bool)
+        // Common convenience properties:
+        Aud() (interface{}, bool)
+        Nbf() (int64, bool)
+        Typ() (string, bool)
+        // Other convenience methods:
+        RawClaims() Claims
+}
+
+type defaultRefreshToken struct {
+        defaultToken
+        claims Claims
+}
+
+func (rt *defaultRefreshToken) Aud() (interface{}, bool) <span class="cov0" title="0">{
+        return rt.claims.GetClaim("aud")
+}</span>
+func (rt *defaultRefreshToken) Azp() (string, bool) <span class="cov0" title="0">{
+        return rt.claims.GetClaimMustString("azp")
+}</span>
+func (rt *defaultRefreshToken) Exp() (int64, bool) <span class="cov0" title="0">{
+        return rt.claims.getInt64Claim("exp")
+}</span>
+func (rt *defaultRefreshToken) Iat() (int64, bool) <span class="cov0" title="0">{
+        return rt.claims.getInt64Claim("iat")
+}</span>
+func (rt *defaultRefreshToken) Iss() (string, bool) <span class="cov0" title="0">{
+        return rt.claims.GetClaimMustString("iss")
+}</span>
+func (rt *defaultRefreshToken) Jti() (string, bool) <span class="cov0" title="0">{
+        return rt.claims.GetClaimMustString("jti")
+}</span>
+func (rt *defaultRefreshToken) Nbf() (int64, bool) <span class="cov0" title="0">{
+        return rt.claims.getInt64Claim("nbf")
+}</span>
+func (rt *defaultRefreshToken) Scope() (string, bool) <span class="cov0" title="0">{
+        // ORY Hydra returns this claim as scp.
+        // Keycloak returns this as scope (as specified in the spec).
+        for _, claimName := range []string{"scp", "scope"} </span><span class="cov0" title="0">{
+                if rt.claims.HasClaim(claimName) </span><span class="cov0" title="0">{
+                        return rt.claims.GetClaimMustString(claimName)
+                }</span>
+        }
+        <span class="cov0" title="0">return "", false</span>
+}
+func (rt *defaultRefreshToken) Sub() (string, bool) <span class="cov0" title="0">{
+        return rt.claims.GetClaimMustString("sub")
+}</span>
+func (rt *defaultRefreshToken) Typ() (string, bool) <span class="cov0" title="0">{
+        return rt.claims.GetClaimMustString("typ")
+}</span>
+
+// DefaultRefreshToken returns an instacne of the refresh token.
+// Call this function using claims returned from jwks.Validator.ValidateToken(string).
+func DefaultRefreshToken(claims Claims) RefreshToken <span class="cov0" title="0">{
+        return &amp;defaultRefreshToken{claims: claims}
+}</span>
+
+func defaultInsecureRefreshToken(t *testing.T, rawToken string) (RefreshToken, error) <span class="cov0" title="0">{
+        token, parseErr := jwt.ParseSigned(rawToken)
+        if parseErr != nil </span><span class="cov0" title="0">{
+                return nil, parseErr
+        }</span>
+        <span class="cov0" title="0">cl := map[string]interface{}{}
+        if claimsErr := token.UnsafeClaimsWithoutVerification(&amp;cl); claimsErr != nil </span><span class="cov0" title="0">{
+                return nil, claimsErr
+        }</span>
+        <span class="cov0" title="0">return DefaultRefreshToken(cl), nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package tokens
+
+import "fmt"
+
+// Claims represents token claims.
+type Claims map[string]interface{}
+
+func (c Claims) getFloat64Claim(claim string) (float64, bool) <span class="cov0" title="0">{
+        if value, ok := c[claim]; ok </span><span class="cov0" title="0">{
+                switch tvalue := value.(type) </span>{
+                case float32:<span class="cov0" title="0">
+                        return float64(tvalue), true</span>
+                case uint:<span class="cov0" title="0">
+                        return float64(tvalue), true</span>
+                case uint32:<span class="cov0" title="0">
+                        return float64(tvalue), true</span>
+                case uint64:<span class="cov0" title="0">
+                        return float64(tvalue), true</span>
+                case int:<span class="cov0" title="0">
+                        return float64(tvalue), true</span>
+                case int32:<span class="cov0" title="0">
+                        return float64(tvalue), true</span>
+                case int64:<span class="cov0" title="0">
+                        return float64(tvalue), true</span>
+                case float64:<span class="cov0" title="0">
+                        return tvalue, true</span>
+                default:<span class="cov0" title="0">
+                        return 0, false</span>
+                }
+        }
+        <span class="cov0" title="0">return 0, false</span>
+}
+
+func (c Claims) getInt64Claim(claim string) (int64, bool) <span class="cov6" title="2">{
+        if value, ok := c[claim]; ok </span><span class="cov6" title="2">{
+                switch tvalue := value.(type) </span>{
+                case float32:<span class="cov0" title="0">
+                        return int64(tvalue), true</span>
+                case float64:<span class="cov6" title="2">
+                        return int64(tvalue), true</span>
+                case uint:<span class="cov0" title="0">
+                        return int64(tvalue), true</span>
+                case uint32:<span class="cov0" title="0">
+                        return int64(tvalue), true</span>
+                case uint64:<span class="cov0" title="0">
+                        return int64(tvalue), true</span>
+                case int:<span class="cov0" title="0">
+                        return int64(tvalue), true</span>
+                case int32:<span class="cov0" title="0">
+                        return int64(tvalue), true</span>
+                case int64:<span class="cov0" title="0">
+                        return tvalue, true</span>
+                default:<span class="cov0" title="0">
+                        return 0, false</span>
+                }
+        }
+        <span class="cov0" title="0">return 0, false</span>
+}
+
+func (c Claims) getBoolClaim(claim string) (bool, bool) <span class="cov0" title="0">{
+        if value, ok := c[claim]; ok </span><span class="cov0" title="0">{
+                switch tvalue := value.(type) </span>{
+                case bool:<span class="cov0" title="0">
+                        return tvalue, true</span>
+                default:<span class="cov0" title="0">
+                        return false, false</span>
+                }
+        }
+        <span class="cov0" title="0">return false, false</span>
+}
+
+func (c Claims) HasClaim(claim string) bool <span class="cov10" title="3">{
+        _, ok := c[claim]
+        return ok
+}</span>
+
+func (c Claims) GetClaim(claim string) (interface{}, bool) <span class="cov0" title="0">{
+        value, ok := c[claim]
+        return value, ok
+}</span>
+
+func (c Claims) GetClaimMustString(claim string) (string, bool) <span class="cov6" title="2">{
+        if value, ok := c[claim]; ok </span><span class="cov6" title="2">{
+                switch tvalue := value.(type) </span>{
+                case string:<span class="cov1" title="1">
+                        return tvalue, ok</span>
+                default:<span class="cov1" title="1">
+                        return fmt.Sprintf("%v", tvalue), ok</span>
+                }
+        }
+        <span class="cov0" title="0">return "", false</span>
+}
+
+// TokenType is a token type.
+type TokenType string
+
+const (
+        // BearerTokenType is a bearer token type.
+        BearerTokenType TokenType = "Bearer"
+        // RefreshTokenType is a refresh token type.
+        RefreshTokenType TokenType = "Refresh"
+)
+
+func getTokenParts(parts []string) (string, string, string) <span class="cov0" title="0">{
+        return parts[0], parts[1], parts[2]
+}</span>
+
+type defaultToken struct {
+        claims Claims
+}
+
+func (at *defaultToken) RawClaims() Claims <span class="cov0" title="0">{
+        return at.claims
+}</span>
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package webfinger
+
+import (
+        "encoding/json"
+        "fmt"
+        "net/http"
+        "net/url"
+
+        "github.com/radekg/app-kit-tokens/jwks"
+)
+
+// OpenIDConfiguration represents an OpenID Configuration webfinger
+// resolved from .well-knonw/openid-configuration.
+type OpenIDConfiguration interface {
+        // endpoints:
+        AuthorizationEndpoint() string
+        EndSessionEndpoint() string
+        IntrospectionEndpoint() string
+        JWKSURI() string
+        RegistrationEndpoint() string
+        TokenEndpoint() string
+        TokenIntrospectionEndpoint() string
+        UserInfoEndpoint() string
+        // supports:
+        ClaimsParameterSupported() bool
+        ClaimsSupported() []string
+        ClaimTypesSupported() []string
+        CodeChallengeMethodsSupported() []string
+        GrantTypesSupported() []string
+        IDTokenEncryptionEncValuesSupported() []string
+        IDTokenSigningAlgValuesSupported() []string
+        RequestObjectSigningAlgValuesSupported() []string
+        RequestParameterSupported() bool
+        RequestURIParameterSupported() bool
+        ResponseModesSupported() []string
+        ResponseTypesSupported() []string
+        ScopesSupported() []string
+        SubjectTypesSupported() []string
+        TokenEndpointAuthMethodsSupported() []string
+        TokenEndpointAuthSigningAlgValuesSupported() []string
+        UserInfoSigningAlgValuesSupported() []string
+        // other:
+        CheckSessionIFrame() string
+        Issuer() string
+        TLSClientCertificateBoundAccessToken() bool
+        // utilities:
+        ResolveJWKS() (jwks.JWKS, error)
+}
+
+// ResolveOpenIDConfiguration resolves the OpneID configuration from webfinger.
+// Appends .well-known/openid-configuration to the base URL.
+func ResolveOpenIDConfiguration(baseURL string) (OpenIDConfiguration, error) <span class="cov0" title="0">{
+        return ResolveOpenIDConfigurationWithHTTPClient(baseURL, &amp;http.Client{})
+}</span>
+
+// ResolveOpenIDConfigurationWithHTTPClient resolves the OpneID configuration from webfinger.
+// Appends .well-known/openid-configuration to the base URL.
+// Uses provided HTTP client.
+func ResolveOpenIDConfigurationWithHTTPClient(baseURL string, client *http.Client) (OpenIDConfiguration, error) <span class="cov0" title="0">{
+        // construct the request:
+        request, requestError := http.NewRequest("GET", fmt.Sprintf("%s/.well-known/openid-configuration", baseURL), nil)
+        if requestError != nil </span><span class="cov0" title="0">{
+                return nil, requestError
+        }</span>
+        // issue the request:
+        <span class="cov0" title="0">resp, getErr := client.Do(request)
+        if getErr != nil </span><span class="cov0" title="0">{
+                return nil, getErr
+        }</span>
+        <span class="cov0" title="0">defer resp.Body.Close()
+        // create response:
+        openIDConfig := &amp;defaultOpenIDConfiguration{httpClient: client}
+        // unmarshal JSON into the struct:
+        if jsonErr := json.NewDecoder(resp.Body).Decode(openIDConfig); jsonErr != nil </span><span class="cov0" title="0">{
+                return nil, jsonErr
+        }</span>
+        <span class="cov0" title="0">return openIDConfig, nil</span>
+}
+
+// OpenIDConfiguration represents well known OpenID configuration.
+type defaultOpenIDConfiguration struct {
+        AuthorizationEndpointValue                      string   `json:"authorization_endpoint"`
+        CheckSessionIFrameValue                         string   `json:"check_session_iframe"`
+        ClaimsParameterSupportedValue                   bool     `json:"claims_parameter_supported"`
+        ClaimsSupportedValue                            []string `json:"claims_supported"`
+        ClaimTypesSupportedValue                        []string `json:"claim_types_supported"`
+        CodeChallengeMethodsSupportedValue              []string `json:"code_challenge_methods_supported"`
+        EndSessionEndpointValue                         string   `json:"end_session_endpoint"`
+        GrantTypesSupportedValue                        []string `json:"grant_types_supported"`
+        IDTokenEncryptionEncValuesSupportedValue        []string `json:"id_token_encryption_enc_values_supported"`
+        IDTokenSigningAlgValuesSupportedValue           []string `json:"id_token_signing_alg_values_supported"`
+        IntrospectionEndpointValue                      string   `json:"introspection_endpoint"`
+        IssuerValue                                     string   `json:"issuer"`
+        JWKSURIValue                                    string   `json:"jwks_uri"`
+        RegistrationEndpointValue                       string   `json:"registration_endpoint"`
+        RequestObjectSigningAlgValuesSupportedValue     []string `json:"request_object_signing_alg_values_supported"`
+        RequestParameterSupportedValue                  bool     `json:"request_parameter_supported"`
+        RequestURIParameterSupportedValue               bool     `json:"request_uri_parameter_supported"`
+        ResponseModesSupportedValue                     []string `json:"response_modes_supported"`
+        ResponseTypesSupportedValue                     []string `json:"response_types_supported"`
+        ScopesSupportedValue                            []string `json:"scopes_supported"`
+        SubjectTypesSupportedValue                      []string `json:"subject_types_supported"`
+        TLSClientCertificateBoundAccessTokenValue       bool     `json:"tls_client_certificate_bound_access_tokens"`
+        TokenEndpointValue                              string   `json:"token_endpoint"`
+        TokenEndpointAuthMethodsSupportedValue          []string `json:"token_endpoint_auth_methods_supported"`
+        TokenEndpointAuthSigningAlgValuesSupportedValue []string `json:"token_endpoint_auth_signing_alg_values_supported"`
+        TokenIntrospectionEndpointValue                 string   `json:"token_introspection_endpoint"`
+        UserInfoEndpointValue                           string   `json:"userinfo_endpoint"`
+        UserInfoSigningAlgValuesSupportedValue          []string `json:"userinfo_signing_alg_values_supported"`
+        httpClient                                      *http.Client
+}
+
+// endpoints:
+func (c *defaultOpenIDConfiguration) AuthorizationEndpoint() string <span class="cov0" title="0">{
+        return c.AuthorizationEndpointValue
+}</span>
+func (c *defaultOpenIDConfiguration) EndSessionEndpoint() string <span class="cov0" title="0">{
+        return c.EndSessionEndpointValue
+}</span>
+func (c *defaultOpenIDConfiguration) IntrospectionEndpoint() string <span class="cov0" title="0">{
+        return c.IntrospectionEndpointValue
+}</span>
+func (c *defaultOpenIDConfiguration) JWKSURI() string <span class="cov0" title="0">{
+        return c.JWKSURIValue
+}</span>
+func (c *defaultOpenIDConfiguration) RegistrationEndpoint() string <span class="cov0" title="0">{
+        return c.RegistrationEndpointValue
+}</span>
+func (c *defaultOpenIDConfiguration) TokenEndpoint() string <span class="cov0" title="0">{
+        return c.TokenEndpointValue
+}</span>
+func (c *defaultOpenIDConfiguration) TokenIntrospectionEndpoint() string <span class="cov0" title="0">{
+        return c.TokenIntrospectionEndpointValue
+}</span>
+func (c *defaultOpenIDConfiguration) UserInfoEndpoint() string <span class="cov0" title="0">{
+        return c.UserInfoEndpointValue
+}</span>
+
+// supports:
+func (c *defaultOpenIDConfiguration) ClaimsParameterSupported() bool <span class="cov0" title="0">{
+        return c.ClaimsParameterSupportedValue
+}</span>
+func (c *defaultOpenIDConfiguration) ClaimsSupported() []string <span class="cov0" title="0">{
+        return c.ClaimsSupportedValue
+}</span>
+func (c *defaultOpenIDConfiguration) ClaimTypesSupported() []string <span class="cov0" title="0">{
+        return c.ClaimTypesSupportedValue
+}</span>
+func (c *defaultOpenIDConfiguration) CodeChallengeMethodsSupported() []string <span class="cov0" title="0">{
+        return c.CodeChallengeMethodsSupportedValue
+}</span>
+func (c *defaultOpenIDConfiguration) GrantTypesSupported() []string <span class="cov0" title="0">{
+        return c.GrantTypesSupportedValue
+}</span>
+func (c *defaultOpenIDConfiguration) IDTokenEncryptionEncValuesSupported() []string <span class="cov0" title="0">{
+        return c.IDTokenEncryptionEncValuesSupportedValue
+}</span>
+func (c *defaultOpenIDConfiguration) IDTokenSigningAlgValuesSupported() []string <span class="cov0" title="0">{
+        return c.IDTokenSigningAlgValuesSupportedValue
+}</span>
+func (c *defaultOpenIDConfiguration) RequestObjectSigningAlgValuesSupported() []string <span class="cov0" title="0">{
+        return c.RequestObjectSigningAlgValuesSupportedValue
+}</span>
+func (c *defaultOpenIDConfiguration) RequestParameterSupported() bool <span class="cov0" title="0">{
+        return c.RequestParameterSupportedValue
+}</span>
+func (c *defaultOpenIDConfiguration) RequestURIParameterSupported() bool <span class="cov0" title="0">{
+        return c.RequestURIParameterSupported()
+}</span>
+func (c *defaultOpenIDConfiguration) ResponseModesSupported() []string <span class="cov0" title="0">{
+        return c.ResponseModesSupportedValue
+}</span>
+func (c *defaultOpenIDConfiguration) ResponseTypesSupported() []string <span class="cov0" title="0">{
+        return c.ResponseTypesSupportedValue
+}</span>
+func (c *defaultOpenIDConfiguration) ScopesSupported() []string <span class="cov0" title="0">{
+        return c.ScopesSupportedValue
+}</span>
+func (c *defaultOpenIDConfiguration) SubjectTypesSupported() []string <span class="cov0" title="0">{
+        return c.SubjectTypesSupportedValue
+}</span>
+func (c *defaultOpenIDConfiguration) TokenEndpointAuthMethodsSupported() []string <span class="cov0" title="0">{
+        return c.TokenEndpointAuthMethodsSupportedValue
+}</span>
+func (c *defaultOpenIDConfiguration) TokenEndpointAuthSigningAlgValuesSupported() []string <span class="cov0" title="0">{
+        return c.TokenEndpointAuthSigningAlgValuesSupportedValue
+}</span>
+func (c *defaultOpenIDConfiguration) UserInfoSigningAlgValuesSupported() []string <span class="cov0" title="0">{
+        return c.UserInfoSigningAlgValuesSupportedValue
+}</span>
+
+// other:
+func (c *defaultOpenIDConfiguration) CheckSessionIFrame() string <span class="cov0" title="0">{
+        return c.CheckSessionIFrameValue
+}</span>
+func (c *defaultOpenIDConfiguration) Issuer() string <span class="cov0" title="0">{
+        return c.IssuerValue
+}</span>
+func (c *defaultOpenIDConfiguration) TLSClientCertificateBoundAccessToken() bool <span class="cov0" title="0">{
+        return c.TLSClientCertificateBoundAccessTokenValue
+}</span>
+
+func (c *defaultOpenIDConfiguration) ResolveJWKS() (jwks.JWKS, error) <span class="cov0" title="0">{
+        u, urlparseErr := url.Parse(c.JWKSURI())
+        if urlparseErr != nil </span><span class="cov0" title="0">{
+                return nil, urlparseErr
+        }</span>
+        <span class="cov0" title="0">return jwks.ResolveJWKS(u, c.httpClient)</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package webfinger
+
+import "fmt"
+
+// KeycloakBaseURL returns Keycloak specific webfinger base URL.
+func KeycloakBaseURL(baseURL, realm string) string <span class="cov0" title="0">{
+        return fmt.Sprintf("%s/auth/realms/%s", baseURL, realm)
+}</span>
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package webfinger
+
+import (
+        "encoding/json"
+        "fmt"
+        "net/http"
+        "net/url"
+
+        "github.com/radekg/app-kit-tokens/jwks"
+)
+
+// UMA2Configuration represents an UMA2 Configuration webfinger
+// resolved from .well-knonw/uma2-configuration.
+type UMA2Configuration interface {
+        // endpoints:
+        AuthorizationEndpoint() string
+        EndSessionEndpoint() string
+        IntrospectionEndpoint() string
+        JWKSURI() string
+        PermissionEndpoint() string
+        PolicyEndpoint() string
+        RegistrationEndpoint() string
+        ResourceRegistrationEndpoint() string
+        TokenEndpoint() string
+        TokenIntrospectionEndpoint() string
+        // supports:
+        GrantTypesSupported() []string
+        ResponseModesSupported() []string
+        ResponseTypesSupported() []string
+        ScopesSupported() []string
+        TokenEndpointAuthMethodsSupported() []string
+        TokenEndpointAuthSigningAlgValuesSupported() []string
+        // other:
+        Issuer() string
+        // utilities:
+        ResolveJWKS() (jwks.JWKS, error)
+}
+
+// ResolveUMA2Configuration resolves the UMA2 configuration from webfinger.
+// Appends .well-known/uma2-configuration to the base URL.
+func ResolveUMA2Configuration(baseURL string) (UMA2Configuration, error) <span class="cov0" title="0">{
+        return ResolveUMA2ConfigurationWithHTTPClient(baseURL, &amp;http.Client{})
+}</span>
+
+// ResolveUMA2ConfigurationWithHTTPClient resolves the UMA2 configuration from webfinger.
+// Appends .well-known/uma2-configuration to the base URL.
+// Uses provided HTTP client.
+func ResolveUMA2ConfigurationWithHTTPClient(baseURL string, client *http.Client) (UMA2Configuration, error) <span class="cov0" title="0">{
+        // construct the request:
+        request, requestError := http.NewRequest("GET", fmt.Sprintf("%s/.well-known/uma2-configuration", baseURL), nil)
+        if requestError != nil </span><span class="cov0" title="0">{
+                return nil, requestError
+        }</span>
+        // issue the request:
+        <span class="cov0" title="0">resp, getErr := client.Do(request)
+        if getErr != nil </span><span class="cov0" title="0">{
+                return nil, getErr
+        }</span>
+        <span class="cov0" title="0">defer resp.Body.Close()
+        // create response:
+        uma2Config := &amp;defaultUMA2Configuration{httpClient: client}
+        // unmarshal JSON into the struct:
+        if jsonErr := json.NewDecoder(resp.Body).Decode(uma2Config); jsonErr != nil </span><span class="cov0" title="0">{
+                return nil, jsonErr
+        }</span>
+        <span class="cov0" title="0">return uma2Config, nil</span>
+}
+
+type defaultUMA2Configuration struct {
+        AuthorizationEndpointValue                      string   `json:"authorization_endpoint"`
+        EndSessionEndpointValue                         string   `json:"end_session_endpoint"`
+        GrantTypesSupportedValue                        []string `json:"grant_types_supported"`
+        IntrospectionEndpointValue                      string   `json:"introspection_endpoint"`
+        IssuerValue                                     string   `json:"issuer"`
+        JWKSURIValue                                    string   `json:"jwks_uri"`
+        PermissionEndpointValue                         string   `json:"permission_endpoint"`
+        PolicyEndpointValue                             string   `json:"policy_endpoint"`
+        RegistrationEndpointValue                       string   `json:"registration_endpoint"`
+        ResponseModesSupportedValue                     []string `json:"response_modes_supported"`
+        ResponseTypesSupportedValue                     []string `json:"response_types_supported"`
+        ResourceRegistrationEndpointValue               string   `json:"resource_registration_endpoint"`
+        ScopesSupportedValue                            []string `json:"scopes_supported"`
+        TokenEndpointValue                              string   `json:"token_endpoint"`
+        TokenEndpointAuthMethodsSupportedValue          []string `json:"token_endpoint_auth_methods_supported"`
+        TokenEndpointAuthSigningAlgValuesSupportedValue []string `json:"token_endpoint_auth_signing_alg_values_supported"`
+        TokenIntrospectionEndpointValue                 string   `json:"token_introspection_endpoint"`
+        httpClient                                      *http.Client
+}
+
+// endpoints:
+func (c *defaultUMA2Configuration) AuthorizationEndpoint() string <span class="cov0" title="0">{
+        return c.AuthorizationEndpointValue
+}</span>
+func (c *defaultUMA2Configuration) EndSessionEndpoint() string <span class="cov0" title="0">{
+        return c.EndSessionEndpointValue
+}</span>
+func (c *defaultUMA2Configuration) IntrospectionEndpoint() string <span class="cov0" title="0">{
+        return c.IntrospectionEndpointValue
+}</span>
+func (c *defaultUMA2Configuration) JWKSURI() string <span class="cov0" title="0">{
+        return c.JWKSURIValue
+}</span>
+func (c *defaultUMA2Configuration) PermissionEndpoint() string <span class="cov0" title="0">{
+        return c.PermissionEndpointValue
+}</span>
+func (c *defaultUMA2Configuration) PolicyEndpoint() string <span class="cov0" title="0">{
+        return c.PolicyEndpointValue
+}</span>
+func (c *defaultUMA2Configuration) RegistrationEndpoint() string <span class="cov0" title="0">{
+        return c.RegistrationEndpointValue
+}</span>
+func (c *defaultUMA2Configuration) ResourceRegistrationEndpoint() string <span class="cov0" title="0">{
+        return c.ResourceRegistrationEndpointValue
+}</span>
+func (c *defaultUMA2Configuration) TokenEndpoint() string <span class="cov0" title="0">{
+        return c.TokenEndpointValue
+}</span>
+func (c *defaultUMA2Configuration) TokenIntrospectionEndpoint() string <span class="cov0" title="0">{
+        return c.TokenIntrospectionEndpointValue
+}</span>
+
+// supports:
+func (c *defaultUMA2Configuration) GrantTypesSupported() []string <span class="cov0" title="0">{
+        return c.GrantTypesSupportedValue
+}</span>
+func (c *defaultUMA2Configuration) ResponseModesSupported() []string <span class="cov0" title="0">{
+        return c.ResponseModesSupportedValue
+}</span>
+func (c *defaultUMA2Configuration) ResponseTypesSupported() []string <span class="cov0" title="0">{
+        return c.ResponseTypesSupportedValue
+}</span>
+func (c *defaultUMA2Configuration) ScopesSupported() []string <span class="cov0" title="0">{
+        return c.ScopesSupportedValue
+}</span>
+func (c *defaultUMA2Configuration) TokenEndpointAuthMethodsSupported() []string <span class="cov0" title="0">{
+        return c.TokenEndpointAuthMethodsSupportedValue
+}</span>
+func (c *defaultUMA2Configuration) TokenEndpointAuthSigningAlgValuesSupported() []string <span class="cov0" title="0">{
+        return c.TokenEndpointAuthSigningAlgValuesSupportedValue
+}</span>
+
+// other:
+func (c *defaultUMA2Configuration) Issuer() string <span class="cov0" title="0">{
+        return c.IssuerValue
+}</span>
+
+func (c *defaultUMA2Configuration) ResolveJWKS() (jwks.JWKS, error) <span class="cov0" title="0">{
+        u, urlparseErr := url.Parse(c.JWKSURI())
+        if urlparseErr != nil </span><span class="cov0" title="0">{
+                return nil, urlparseErr
+        }</span>
+        <span class="cov0" title="0">return jwks.ResolveJWKS(u, c.httpClient)</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
